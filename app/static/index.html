@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simple Tetris</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; margin: 16px; background: #111; color: #fff; }
+  #board { border: 2px solid #fff; background: #222; margin: 16px auto; display: block; }
+  button { margin: 2px; padding: 8px 12px; font-size: 14px; }
+  #info { margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Simple Tetris</h1>
+<canvas id="board" width="200" height="400"></canvas>
+<div>
+  <button onclick="cmd('left')">⬅️</button>
+  <button onclick="cmd('right')">➡️</button>
+  <button onclick="cmd('rotate')">⟳</button>
+  <button onclick="cmd('down')">⬇️</button>
+  <button onclick="cmd('drop')">Drop</button>
+  <button onclick="cmd('restart')">Restart</button>
+</div>
+<div id="info">Score: 0 | Lines: 0 | Level: 1 | Next: ?</div>
+<script>
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const cols = 10;
+const rows = 20;
+const block = canvas.width / cols;
+
+function color(val) {
+  const colors = ['#000','#00f','#ff0','#a0f','#f80','#08f','#0f8','#f44'];
+  return colors[val] || '#fff';
+}
+
+async function fetchState() {
+  const res = await fetch('/state');
+  return res.json();
+}
+
+async function cmd(action) {
+  await fetch('/command/' + action, { method: 'POST' });
+  update();
+}
+
+function draw(grid) {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      ctx.fillStyle = color(grid[y][x]);
+      ctx.fillRect(x * block, y * block, block - 1, block - 1);
+    }
+  }
+}
+
+async function update() {
+  const state = await fetchState();
+  draw(state.grid);
+  document.getElementById('info').innerText =
+    `Score: ${state.score} | Lines: ${state.lines} | Level: ${state.level} | Next: ${state.nextPiece}` +
+    (state.gameOver ? ' | GAME OVER' : '');
+}
+
+setInterval(update, 180);
+update();
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') cmd('left');
+  if (e.key === 'ArrowRight') cmd('right');
+  if (e.key === 'ArrowDown') cmd('down');
+  if (e.key === 'ArrowUp') cmd('rotate');
+  if (e.key === ' ') cmd('drop');
+});
+</script>
+</body>
+</html>
